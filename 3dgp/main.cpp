@@ -33,6 +33,9 @@ float accel = 4.f;		// camera acceleration
 vec3 _acc(0), _vel(0);	// camera acceleration and velocity vectors
 float _fov = 60.f;		// field of view (zoom)
 
+// Cycle
+bool dayTime = true;
+
 bool init()
 {
 	// shaders
@@ -60,8 +63,8 @@ bool init()
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);	// this is the default one; try GL_LINE!
 
 	// load your 3D models here!
-	if (!terrain.load("models\\heightmap.bmp", 10)) return false;
-	if (!road.load("models\\roadmap.bmp", 10)) return false;
+	if (!terrain.load("models\\heightmap.png", 10)) return false;
+	if (!road.load("models\\roadmap.png", 10)) return false;
 	if (!streetLamp.load("models\\streetlamp.obj")) return false;
 
 	// load textures
@@ -77,14 +80,14 @@ bool init()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bm.getWidth(), bm.getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bm.getBits());
 
-	//// road
-	//bm.load("models/road.jpg", GL_RGBA);
-	//if (!bm.getBits()) return false;
-	//glActiveTexture(GL_TEXTURE1);
-	//glGenTextures(1, &idTexRoad);
-	//glBindTexture(GL_TEXTURE_2D, idTexRoad);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bm.getWidth(), bm.getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bm.getBits());
+	// road
+	bm.load("models/road.jpg", GL_RGBA);
+	if (!bm.getBits()) return false;
+	glActiveTexture(GL_TEXTURE1);
+	glGenTextures(1, &idTexRoad);
+	glBindTexture(GL_TEXTURE_2D, idTexRoad);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bm.getWidth(), bm.getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bm.getBits());
 
 	// Initialise the View Matrix (initial position of the camera)
 	matrixView = rotate(mat4(1), radians(12.f), vec3(1, 0, 0));
@@ -118,10 +121,9 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 	terrain.render(m);
 
 	// render road
-	//glBindTexture(GL_TEXTURE_2D, idTexRoad);
-
+	glBindTexture(GL_TEXTURE_2D, idTexRoad);
 	m = translate(matrixView, vec3(0, 0, 0));
-	m = translate(m, vec3(6.0f, 0.01f, 0.0f));
+	m = translate(m, vec3(0.0f, 0, 0.0f));
 	road.render(m);
 
 	// render lamp
@@ -133,8 +135,8 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 	streetLamp.render(0, m);
 
 	m = matrixView;
-	terrainY = terrain.getInterpolatedHeight(8, -5);
-	m = translate(m, vec3(8, terrainY, -5));
+	terrainY = terrain.getInterpolatedHeight(-4, -5);
+	m = translate(m, vec3(-4, terrainY, -5));
 	m = scale(m, vec3(.05f, .025f, .05f));
 	streetLamp.render(0, m);
 
@@ -145,8 +147,8 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 	streetLamp.render(0, m);
 
 	m = matrixView;
-	terrainY = terrain.getInterpolatedHeight(8, -25);
-	m = translate(m, vec3(8, terrainY, -25));
+	terrainY = terrain.getInterpolatedHeight(-4, -25);
+	m = translate(m, vec3(-4, terrainY, -25));
 	m = scale(m, vec3(.05f, .025f, .05f));
 	streetLamp.render(0, m);
 }
@@ -157,18 +159,55 @@ void onRender()
 	program.sendUniform("lightAmbient.color", vec3(.1, .1, .1));
 	program.sendUniform("materialAmbient", vec3(1, 1, 1));
 
-	program.sendUniform("lightDir.direction", vec3(1.0, 0.5, 1.0));
-	program.sendUniform("lightDir.diffuse", vec3(.2, .2, .2));	  // dimmed white light
-	program.sendUniform("materialDiffuse", vec3(.2, .2, .6));
+	if(dayTime)
+	{
+		// Day Time
+		program.sendUniform("lightDir.direction", vec3(1.0, 1, 1.0));
+		program.sendUniform("lightDir.diffuse", vec3(1, 1, 1));
+		program.sendUniform("materialDiffuse", vec3(.8, .8, .8));
+		program.sendUniform("materialAmbient", vec3(.1, .1, .1));
 
-	program.sendUniform("lightPoint.position", vec3(1.1, 4.3, 1));
-	program.sendUniform("lightPoint.diffuse", vec3(.5, .5, .5));
-	program.sendUniform("lightPoint.specular", vec3(1, 1, 1));
-	program.sendUniform("materialSpecular", vec3(.6, .6, 1));
-	program.sendUniform("shininess", 10);
+		glClearColor(.2, .6, 1, 1);
+	}
+	else 
+	{
+		// Night Time
+		program.sendUniform("lightDir.direction", vec3(.5, -.5, .5));
+		program.sendUniform("lightDir.diffuse", vec3(.1, .1, .3));
+		program.sendUniform("materialDiffuse", vec3(.2, .2, .3));
+		program.sendUniform("materialAmbient", vec3(0, 0, .1));
+
+		glClearColor(0, 0, 1, 1);
+	}
+
+	//program.sendUniform("lightPoint.position", vec3(1.1, 4.3, 1));
+	//program.sendUniform("lightPoint.diffuse", vec3(.5, .5, .5));
+	//program.sendUniform("lightPoint.specular", vec3(1, 1, 1));
+	//program.sendUniform("materialSpecular", vec3(.6, .6, 1));
+	//program.sendUniform("shininess", 10);
+
+	program.sendUniform("lightPoint.position", vec3(4, 3.5, 5));
+	program.sendUniform("lightPoint.diffuse", vec3(.8, .7, .5));
+	program.sendUniform("lightPoint.specular", vec3(.3, .3, .2));
+
+	program.sendUniform("lightPoint1.position", vec3(-4, 3.5, -5));
+	program.sendUniform("lightPoint1.diffuse", vec3(.8, .7, .5));
+	program.sendUniform("lightPoint1.specular", vec3(.3, .3, .2));
+
+	program.sendUniform("lightPoint2.position", vec3(4, 3.5, -15));
+	program.sendUniform("lightPoint2.diffuse", vec3(.8, .7, .5));
+	program.sendUniform("lightPoint2.specular", vec3(.3, .3, .2));
+
+	program.sendUniform("lightPoint3.position", vec3(-4, 3.5, -25));
+	program.sendUniform("lightPoint3.diffuse", vec3(.8, .7, .5));
+	program.sendUniform("lightPoint3.specular", vec3(.3, .3, .2));
+
+	program.sendUniform("materialSpecular", vec3(1, 1, 1));
+	program.sendUniform("shininess", 16);
 
 	// TEXTURES
 	program.sendUniform("texture0", 0);
+	program.sendUniform("texture1", 1);
 
 	// these variables control time & animation
 	static float prev = 0;
@@ -243,6 +282,7 @@ void onKeyUp(unsigned char key, int x, int y)
 	case 'd': _acc.x = _vel.x = 0; break;
 	case 'q':
 	case 'e': _acc.y = _vel.y = 0; break;
+	case 'n': dayTime = !dayTime; break;
 	}
 }
 

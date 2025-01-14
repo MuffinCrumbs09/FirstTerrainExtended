@@ -20,10 +20,11 @@ uniform float shininess;
 uniform mat4 matrixView;
 
 // Light
-uniform POINT lightPoint;
+uniform POINT lightPoint, lightPoint1, lightPoint2, lightPoint3;
 
 // Tectures
 uniform sampler2D texture0;
+uniform sampler2D texture1;
 
 in vec4 position;
 in vec3 normal;
@@ -45,16 +46,23 @@ vec4 PointLight(POINT light)
 	pColor += vec4(materialDiffuse * light.diffuse, 1) * max(NdotL, 0);
 
 	vec3 V = normalize(-position.xyz);
-	vec3 R = reflect(-L, V);
+	vec3 R = reflect(-L, normal);
 	float RdotV = dot(R, V);
 
 	pColor += vec4(materialSpecular * light.specular * pow(max(RdotV, 0), shininess), 1);
+
 	return pColor;
 }
 
 void main(void) 
 {
 	outColor = color;
+
 	outColor += PointLight(lightPoint);
+	outColor += PointLight(lightPoint1);
+	outColor += PointLight(lightPoint2);
+	outColor += PointLight(lightPoint3);
+
 	outColor *= texture(texture0, texCoord0);
+	outColor *= texture(texture1, texCoord0);
 }
