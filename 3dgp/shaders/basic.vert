@@ -33,7 +33,7 @@ uniform vec3 materialSpecular;
 uniform float shininess;
 
 // Lights
-uniform AMBIENT lightAmbient, lightAmbient1, lightAmbient2, lightAmbient3;
+uniform AMBIENT lightAmbient;
 uniform DIRECTIONAL lightDir;
 uniform POINT lightPoint, lightPoint1, lightPoint2, lightPoint3;
 
@@ -97,12 +97,15 @@ gl_Position = matrixProjection * position;
 
 // calculate light
 color = vec4(0, 0, 0, 1);
+
 color += AmbientLight(lightAmbient);
+
 color += DirectionalLight(lightDir);
-color += PointLight(lightPoint);
-color += PointLight(lightPoint1);
-color += PointLight(lightPoint2);
-color += PointLight(lightPoint3);
+
+// color += PointLight(lightPoint);
+// color += PointLight(lightPoint1);
+// color += PointLight(lightPoint2);
+// color += PointLight(lightPoint3);
 
 // calculate texture coord
 texCoord0 = aTexCoord;

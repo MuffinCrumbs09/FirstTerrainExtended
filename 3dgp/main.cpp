@@ -115,6 +115,43 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 	mat4 m;
 	float terrainY;
 
+	// LIGHTING
+	program.sendUniform("lightAmbient.color", vec3(.1, .1, .1));
+	program.sendUniform("materialAmbient", vec3(1, 1, 1));
+
+	if (dayTime)
+	{
+		// Day Time
+		program.sendUniform("lightDir.direction", vec3(1.0, 1, 1.0));
+		program.sendUniform("lightDir.diffuse", vec3(1, 1, 1));
+		program.sendUniform("materialDiffuse", vec3(.8, .8, .8));
+		program.sendUniform("materialAmbient", vec3(.1, .1, .1));
+
+		program.sendUniform("lightAmbient.color", vec3(0, 0, 0));
+
+		program.sendUniform("globalIntensity", 0);
+
+		glClearColor(.2, .6, 1, 1);
+	}
+	else
+	{
+		// Night Time
+		program.sendUniform("lightDir.direction", vec3(.5, -.5, .5));
+		program.sendUniform("lightDir.diffuse", vec3(.1, .1, .3));
+		program.sendUniform("materialDiffuse", vec3(.2, .2, .3));
+		program.sendUniform("materialAmbient", vec3(0, 0, .1));
+
+		program.sendUniform("lightAmbient.color", vec3(1, 1, 1));
+
+		program.sendUniform("globalIntensity", 5);
+
+		glClearColor(0, 0, 1, 1);
+	}
+
+	// TEXTURES
+	program.sendUniform("texture0", 0);
+	program.sendUniform("texture1", 1);
+
 	// render terrain
 	glBindTexture(GL_TEXTURE_2D, idTexSand);
 	m = translate(matrixView, vec3(0, 0, 0));
@@ -128,86 +165,116 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 
 	// render lamp
 
+	// Light 1
+	m = matrixView;
+	m = translate(m, vec3(4, 3.5, 5));
+	m = scale(m, vec3(.1, .1, .1));
+	program.sendUniform("matrixModelView", m);
+	program.sendUniform("materialDiffuse", vec3(1.0f, 1.0f, 1.0f));
+	program.sendUniform("materialSpecular", vec3(0.0f, 0.0f, 0.0f));
+	program.sendUniform("lightAmbient1.color", vec3(1.0, 1.0, 1.0)); // Set emissive light
+	glutSolidSphere(1, 32, 32);
+
+	// Lamp 1
 	m = matrixView;	
 	terrainY = terrain.getInterpolatedHeight(4, 5);
 	m = translate(m, vec3(4, terrainY, 5));
 	m = scale(m, vec3(.05f, .025, .05f));
-	streetLamp.render(0, m);
 
-	m = matrixView;
-	terrainY = terrain.getInterpolatedHeight(-4, -5);
-	m = translate(m, vec3(-4, terrainY, -5));
-	m = scale(m, vec3(.05f, .025f, .05f));
-	streetLamp.render(0, m);
-
-	m = matrixView;
-	terrainY = terrain.getInterpolatedHeight(4, -15);
-	m = translate(m, vec3(4, terrainY, -15));
-	m = scale(m, vec3(.05f, .025f, .05f));
-	streetLamp.render(0, m);
-
-	m = matrixView;
-	terrainY = terrain.getInterpolatedHeight(-4, -25);
-	m = translate(m, vec3(-4, terrainY, -25));
-	m = scale(m, vec3(.05f, .025f, .05f));
-	streetLamp.render(0, m);
-}
-
-void onRender()
-{
-	// LIGHTING
-	program.sendUniform("lightAmbient.color", vec3(.1, .1, .1));
-	program.sendUniform("materialAmbient", vec3(1, 1, 1));
-
-	if(dayTime)
-	{
-		// Day Time
-		program.sendUniform("lightDir.direction", vec3(1.0, 1, 1.0));
-		program.sendUniform("lightDir.diffuse", vec3(1, 1, 1));
-		program.sendUniform("materialDiffuse", vec3(.8, .8, .8));
-		program.sendUniform("materialAmbient", vec3(.1, .1, .1));
-
-		glClearColor(.2, .6, 1, 1);
-	}
-	else 
-	{
-		// Night Time
-		program.sendUniform("lightDir.direction", vec3(.5, -.5, .5));
-		program.sendUniform("lightDir.diffuse", vec3(.1, .1, .3));
-		program.sendUniform("materialDiffuse", vec3(.2, .2, .3));
-		program.sendUniform("materialAmbient", vec3(0, 0, .1));
-
-		glClearColor(0, 0, 1, 1);
-	}
-
-	//program.sendUniform("lightPoint.position", vec3(1.1, 4.3, 1));
-	//program.sendUniform("lightPoint.diffuse", vec3(.5, .5, .5));
-	//program.sendUniform("lightPoint.specular", vec3(1, 1, 1));
-	//program.sendUniform("materialSpecular", vec3(.6, .6, 1));
-	//program.sendUniform("shininess", 10);
+	program.sendUniform("materialAmbient", vec3(.2, .2, .2));
+	program.sendUniform("materialDiffuse", vec3(.8, .7, .5));
+	program.sendUniform("materialSpecular", vec3(.3, .3, .3));
+	program.sendUniform("shininess", 32);
 
 	program.sendUniform("lightPoint.position", vec3(4, 3.5, 5));
 	program.sendUniform("lightPoint.diffuse", vec3(.8, .7, .5));
 	program.sendUniform("lightPoint.specular", vec3(.3, .3, .2));
+	streetLamp.render(0, m);
+
+	// Light 2
+	m = matrixView;
+	m = translate(m, vec3(-4, 3.5, -5));
+	m = scale(m, vec3(.1, .1, .1));
+	program.sendUniform("matrixModelView", m);
+	program.sendUniform("materialDiffuse", vec3(1.0f, 1.0f, 1.0f));
+	program.sendUniform("materialSpecular", vec3(0.0f, 0.0f, 0.0f));
+	program.sendUniform("lightAmbient2.color", vec3(1.0, 1.0, 1.0)); // Set emissive light
+	glutSolidSphere(1, 32, 32);
+
+	// Lamp 2
+	m = matrixView;
+	terrainY = terrain.getInterpolatedHeight(-4, -5);
+	m = translate(m, vec3(-4, terrainY, -5));
+	m = scale(m, vec3(.05f, .025f, .05f));
+
+	program.sendUniform("materialAmbient", vec3(.2, .2, .2));
+	program.sendUniform("materialDiffuse", vec3(.8, .7, .5));
+	program.sendUniform("materialSpecular", vec3(.3, .3, .3));
+	program.sendUniform("shininess", 32);
 
 	program.sendUniform("lightPoint1.position", vec3(-4, 3.5, -5));
 	program.sendUniform("lightPoint1.diffuse", vec3(.8, .7, .5));
 	program.sendUniform("lightPoint1.specular", vec3(.3, .3, .2));
+	streetLamp.render(0, m);
+
+	// Light 3
+	m = matrixView;
+	m = translate(m, vec3(4, 3.5, -15));
+	m = scale(m, vec3(.1, .1, .1));
+	program.sendUniform("matrixModelView", m);
+	program.sendUniform("materialDiffuse", vec3(1.0f, 1.0f, 1.0f));
+	program.sendUniform("materialSpecular", vec3(0.0f, 0.0f, 0.0f));
+	program.sendUniform("lightAmbient3.color", vec3(1.0, 1.0, 1.0)); // Set emissive light
+	glutSolidSphere(1, 32, 32);
+
+	// Lamp 3
+	m = matrixView;
+	terrainY = terrain.getInterpolatedHeight(4, -15);
+	m = translate(m, vec3(4, terrainY, -15));
+	m = scale(m, vec3(.05f, .025f, .05f));
+
+	program.sendUniform("materialAmbient", vec3(.2, .2, .2));
+	program.sendUniform("materialDiffuse", vec3(.8, .7, .5));
+	program.sendUniform("materialSpecular", vec3(.3, .3, .3));
+	program.sendUniform("shininess", 32);
 
 	program.sendUniform("lightPoint2.position", vec3(4, 3.5, -15));
 	program.sendUniform("lightPoint2.diffuse", vec3(.8, .7, .5));
 	program.sendUniform("lightPoint2.specular", vec3(.3, .3, .2));
 
+	streetLamp.render(0, m);
+
+	// Light 4
+	m = matrixView;
+	m = translate(m, vec3(-4, 3.5, -5));
+	m = scale(m, vec3(.1, .1, .1));
+	program.sendUniform("matrixModelView", m);
+	program.sendUniform("materialDiffuse", vec3(1.0f, 1.0f, 1.0f));
+	program.sendUniform("materialSpecular", vec3(0.0f, 0.0f, 0.0f));
+	program.sendUniform("lightAmbient4.color", vec3(1.0, 1.0, 1.0)); // Set emissive light
+	glutSolidSphere(1, 32, 32);
+
+	// Lamp 4
+	m = matrixView;
+	terrainY = terrain.getInterpolatedHeight(-4, -25);
+	m = translate(m, vec3(-4, terrainY, -25));
+	m = scale(m, vec3(.05f, .025f, .05f));
+
+	program.sendUniform("materialAmbient", vec3(.2, .2, .2));
+	program.sendUniform("materialDiffuse", vec3(.8, .7, .5));
+	program.sendUniform("materialSpecular", vec3(.3, .3, .3));
+	program.sendUniform("shininess", 32);
+
 	program.sendUniform("lightPoint3.position", vec3(-4, 3.5, -25));
 	program.sendUniform("lightPoint3.diffuse", vec3(.8, .7, .5));
 	program.sendUniform("lightPoint3.specular", vec3(.3, .3, .2));
 
-	program.sendUniform("materialSpecular", vec3(1, 1, 1));
-	program.sendUniform("shininess", 16);
+	streetLamp.render(0, m);
+}
 
-	// TEXTURES
-	program.sendUniform("texture0", 0);
-	program.sendUniform("texture1", 1);
+void onRender()
+{
+	
 
 	// these variables control time & animation
 	static float prev = 0;
