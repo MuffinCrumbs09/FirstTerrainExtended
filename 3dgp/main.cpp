@@ -122,8 +122,6 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 	float terrainY, x, z;
 
 	// LIGHTING
-	program.sendUniform("lightAmbient.color", vec3(.1, .1, .1));
-	program.sendUniform("materialAmbient", vec3(1, 1, 1));
 
 	if (dayTime)
 	{
