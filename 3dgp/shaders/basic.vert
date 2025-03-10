@@ -22,6 +22,7 @@ struct DIRECTIONAL
 uniform mat4 matrixProjection;
 uniform mat4 matrixView;
 uniform mat4 matrixModelView;
+uniform mat4 matrixShadow;
 
 // Materials
 uniform vec3 materialAmbient;
@@ -42,6 +43,7 @@ in vec4 aBoneWeight;
 out vec4 color;
 out vec4 position;
 out vec3 normal;
+out vec4 shadowCoord;
 
 // Texture Coords
 out vec2 texCoord0;
@@ -91,4 +93,7 @@ void main(void)
 	color += DirectionalLight(lightDir);
 
 	texCoord0 = aTexCoord;
+
+	mat4 matrixModel = inverse(matrixView) * matrixModelView;
+	shadowCoord = matrixShadow * matrixModel * vec4(aVertex, 1);
 }

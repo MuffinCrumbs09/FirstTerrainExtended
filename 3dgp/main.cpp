@@ -23,7 +23,7 @@ C3dglTerrain terrain, road;
 C3dglModel streetLamp, stone, ufo, man;
 
 // Textures
-GLuint idTexSand, idTexRoad;
+GLuint idTexSand, idTexRoad, idTexShadow, idFBO;
 
 // The View Matrix
 mat4 matrixView;
@@ -40,6 +40,7 @@ bool dayTime = true;
 // Animations
 float ufoPos = 0;
 bool ufoPath;
+
 
 bool init()
 {
@@ -66,6 +67,8 @@ bool init()
 	glEnable(GL_NORMALIZE);		// normalization is needed by AssImp library models
 	glShadeModel(GL_SMOOTH);	// smooth shading mode is the default one; try GL_FLAT here!
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);	// this is the default one; try GL_LINE!
+
+	glEnable(GL_CULL_FACE);
 
 	// load your 3D models here!
 	if (!terrain.load("models\\heightmap.png", 10)) return false;
@@ -107,6 +110,41 @@ bool init()
 	glBindTexture(GL_TEXTURE_2D, idTexRoad);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bm.getWidth(), bm.getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bm.getBits());
+
+	// Shadow Map
+	glActiveTexture(GL_TEXTURE7);
+	glGenTextures(1, &idTexShadow);
+	glBindTexture(GL_TEXTURE_2D, idTexShadow);
+
+	// Texture Parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LESS);
+
+	// Association
+	GLint viewport[4];
+	glGetIntegerv(GL_VIEWPORT, viewport);
+	int w = viewport[2], h = viewport[3];
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, w * 2, h * 2, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+
+	// Send the texture;
+	program.sendUniform("shadowMap", 7);
+
+	glActiveTexture(GL_TEXTURE0);
+
+	// Create FBO
+	glGenFramebuffers(1, &idFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER_EXT, idFBO);
+
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, idTexShadow, 0);
+
+	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
 	glutSetVertexAttribCoord3(program.getAttribLocation("aVertex"));
 	glutSetVertexAttribNormal(program.getAttribLocation("aNormal"));
@@ -379,6 +417,60 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 	man.render(m);
 }
 
+// called before window opened or resized - to setup the Projection Matrix
+void onReshape(int w, int h)
+{
+	float ratio = w * 1.0f / h;      // we hope that h is not zero
+	glViewport(0, 0, w, h);
+	mat4 matrixProjection = perspective(radians(_fov), ratio, 0.02f, 1000.f);
+
+	// Setup the Projection Matrix
+	program.sendUniform("matrixProjection", matrixProjection);
+}
+
+void createShadowMap(mat4 lightTransform, float time, float deltaTime)
+{
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_FRONT);
+
+	GLint viewport[4];
+	glGetIntegerv(GL_VIEWPORT, viewport);
+	int w = viewport[2], h = viewport[3];
+
+	glViewport(0, 0, w * 2, h * 2);
+	mat4 matrixProjection = perspective(radians(160.f), (float)w / (float)h, 0.5f, 50.f);
+	program.sendUniform("matrixProjection", matrixProjection);
+
+	mat4 matrixView = lightTransform;
+
+	program.sendUniform("matrixView", matrixView);
+
+	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, idFBO);
+
+	// Off-screen rendering
+
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+	const mat4 bias = {
+		{ 0.5, 0, 0, 0 },
+		{ 0, 0.5, 0, 0 },
+		{ 0, 0, 0.5, 0 },
+		{ 0.5, 0.5, 0.5, 1 }
+	};
+	program.sendUniform("matrixShadow", bias * matrixProjection * matrixView);
+
+	renderScene(matrixView, time, deltaTime);
+
+	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	glDisable(GL_CULL_FACE);
+	onReshape(w, h);
+
+	glCullFace(GL_BACK);
+}
+
 void onRender()
 {
 	// these variables control time & animation
@@ -386,6 +478,11 @@ void onRender()
 	float time = glutGet(GLUT_ELAPSED_TIME) * 0.001f;	// time since start in seconds
 	float deltaTime = time - prev;						// time since last frame
 	prev = time;										// framerate is 1/deltaTime
+
+	createShadowMap(lookAt(
+		vec3(-2.55f, 4.24f, -1.0f),
+		vec3(0.04, 3.0f, 0.0f),
+		vec3(0.0f, 1.0f, 0.0f)), time, deltaTime);
 
 	// clear screen and buffers
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -416,17 +513,6 @@ void onRender()
 
 	// proceed the animation
 	glutPostRedisplay();
-}
-
-// called before window opened or resized - to setup the Projection Matrix
-void onReshape(int w, int h)
-{
-	float ratio = w * 1.0f / h;      // we hope that h is not zero
-	glViewport(0, 0, w, h);
-	mat4 matrixProjection = perspective(radians(_fov), ratio, 0.02f, 1000.f);
-
-	// Setup the Projection Matrix
-	program.sendUniform("matrixProjection", matrixProjection);
 }
 
 // Handle WASDQE keys

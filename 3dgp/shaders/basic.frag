@@ -48,6 +48,9 @@ out vec4 outColor;
 
 in vec2 texCoord0;
 
+in vec4 shadowCoord;
+uniform sampler2DShadow shadowMap;
+
 vec4 PointLight(POINT light, float intensity)
 {
 	// Calculate Point Light
@@ -112,4 +115,10 @@ void main(void)
 
 	outColor *= texture(texture0, texCoord0);
 	outColor *= texture(texture1, texCoord0);
+
+	float shadow = 1.0;
+	if (shadowCoord.w > 0)
+		shadow = 0.5 + 0.5 * textureProj(shadowMap, shadowCoord);
+
+	outColor *= shadow;
 }
