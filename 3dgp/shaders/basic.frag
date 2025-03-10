@@ -80,7 +80,7 @@ vec4 SpotLight(SPOT light)
 	vec4 pColor = vec4(0, 0, 0, 1);
 
 	// diffuse
-	vec3 L = normalize(light.matrix * vec4(light.position, 1) - position).xyz;
+	vec3 L = normalize(matrixView * vec4(light.position, 1) - position).xyz;
 	float NdotL = dot(L, normal.xyz);
 	pColor += vec4(light.diffuse * materialDiffuse, 1) * max(NdotL, 0);
 
@@ -92,7 +92,7 @@ vec4 SpotLight(SPOT light)
 		pColor += vec4(light.specular * materialSpecular * pow(max(RdotV, 0), materialShininess), 1) * light.intensity;
 
 	// spot factor
-	vec3 D = normalize((mat3(light.matrix) * light.direction));
+	vec3 D = normalize((mat3(matrixView) * light.direction));
 	float s1 = -dot(L, D);
 	float angle = acos(s1);
 

@@ -38,8 +38,8 @@ float _fov = 60.f;		// field of view (zoom)
 bool dayTime = true;
 
 // Animations
-float ufoPos = 0;
-bool ufoPath;
+float ufoIntensity;
+bool ufoSwitch;
 
 
 bool init()
@@ -378,33 +378,31 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 
 	// UFO
 	m = matrixView;
-	m = translate(m, vec3(0, 25, ufoPos));
+	m = translate(m, vec3(0, 25, 0));
 	m = rotate(m, radians(90.f), vec3(0, 1, 0));
 	m = rotate(m, radians(90.f), vec3(1, 0, 0));
 	m = scale(m, vec3(.05, .05, .05));
 	ufo.render(0, m);
 
 	// Spotlight
-	mat4 lightMatrix = translate(matrixView, vec3(0, 25, ufoPos));
 
 	program.sendUniform("matrixModelView", m);
-	program.sendUniform("spotlight.matrix", lightMatrix);
-	program.sendUniform("spotlight.position", vec3(0, 23, ufoPos));
+	program.sendUniform("spotlight.position", vec3(0, 23, 0));
 	program.sendUniform("spotlight.direction", vec3(0, -1, 0));
 	program.sendUniform("spotlight.diffuse", vec3(0.0, 1.0, 0.0));
 	program.sendUniform("spotlight.specular", vec3(0.0, 1.0, 0.0));
 	program.sendUniform("spotlight.cutOff", cos(radians(10.0f)));
 	program.sendUniform("spotlight.attenuation", 5);
-	program.sendUniform("spotlight.intensity", 2);
+	program.sendUniform("spotlight.intensity", ufoIntensity);
 
-	// UFO movement
-	if (ufoPath)
-		ufoPos += 0.01f;
+	// UFO Intensity
+	if (ufoSwitch)
+		ufoIntensity += 0.01f;
 	else
-		ufoPos -= 0.01f;
+		ufoIntensity -= 0.01f;
 
-	if (ufoPos > 30 || ufoPos < -30)
-		ufoPath = !ufoPath;
+	if (ufoIntensity > 1 || ufoIntensity < 0)
+		ufoSwitch = !ufoSwitch;
 
 	// Man
 	std::vector<mat4> transforms;
