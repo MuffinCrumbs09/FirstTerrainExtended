@@ -14,13 +14,6 @@ struct DIRECTIONAL
 	vec3 diffuse;
 };
 
-struct POINT
-{
-	vec3 position;
-	vec3 diffuse;
-	vec3 specular;
-};
-
 // Matrices
 uniform mat4 matrixProjection;
 uniform mat4 matrixView;
@@ -35,7 +28,6 @@ uniform float shininess;
 // Lights
 uniform AMBIENT lightAmbient;
 uniform DIRECTIONAL lightDir;
-uniform POINT lightPoint, lightPoint1, lightPoint2, lightPoint3;
 
 in vec3 aVertex;
 in vec3 aNormal;
@@ -69,25 +61,6 @@ vec4 DirectionalLight(DIRECTIONAL light)
 	return color;
 }
 
-vec4 PointLight(POINT light)
-{
-	// Calculate Point Light
-	vec4 color = vec4(0, 0, 0, 0);
-
-	vec3 lightPos = (matrixView * vec4(light.position, 1.0)).xyz;
-	vec3 L = normalize(lightPos - vec3(position));
-
-	vec3 V = normalize(-position.xyz);
-	vec3 R = reflect(-L, normal);
-
-	float NdotL = dot(normal, L);
-	color += vec4(materialDiffuse * light.diffuse, 1) * max(NdotL, 0);
-
-	float RdotV = dot(R, V);
-	color += vec4(materialSpecular * light.specular * pow(max(RdotV, 0), shininess), 1);
-	return color;
-}
-
 void main(void)
 {
 CalcNormal();
@@ -102,11 +75,5 @@ color += AmbientLight(lightAmbient);
 
 color += DirectionalLight(lightDir);
 
-// color += PointLight(lightPoint);
-// color += PointLight(lightPoint1);
-// color += PointLight(lightPoint2);
-// color += PointLight(lightPoint3);
-
-// calculate texture coord
 texCoord0 = aTexCoord;
 }

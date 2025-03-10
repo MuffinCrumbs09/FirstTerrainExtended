@@ -10,23 +10,30 @@ struct POINT
 	vec3 specular;
 };
 
-struct AMBIENT
+struct SPOT
 {
-	vec3 color;
+	vec3 position;
+	vec3 diffuse;
+	vec3 specular;
+	vec3 direction;
+	float cutOff;
+	float attenuation;
+	float intensity;
+	mat4 matrix;
 };
 
 // Materials
 uniform vec3 materialAmbient;
 uniform vec3 materialDiffuse;
 uniform vec3 materialSpecular;
-uniform float shininess;
+uniform float materialShininess;
 
 // Matrices
 uniform mat4 matrixView;
 
 // Light
 uniform POINT lightPoint, lightPoint1, lightPoint2, lightPoint3;
-uniform AMBIENT lightAmbient1, lightAmbient2, lightAmbient3, lightAmbient4;
+uniform SPOT spotlight;
 uniform float globalIntensity;
 
 // Tectures
@@ -44,42 +51,60 @@ in vec2 texCoord0;
 vec4 PointLight(POINT light, float intensity)
 {
 	// Calculate Point Light
-	vec4 pColor = vec4(0, 0, 0, 0);
+	vec4 pColor = vec4(0, 0, 0, 1);
 
-	vec3 lightPos = (matrixView * vec4(light.position, 1.0)).xyz;
-	vec3 L = normalize(lightPos - vec3(position));
+	// diffuse
+	vec3 L = normalize(matrixView * vec4(light.position, 1) - position).xyz;
+	float NdotL = dot(L, normal.xyz);
+	pColor += vec4(light.diffuse * materialDiffuse, 1) * max(NdotL, 0);
 
-	float NdotL = dot(normal, L);
-	pColor += vec4(materialDiffuse * light.diffuse, 1) * max(NdotL, 0) * intensity;
-
+	// specular
 	vec3 V = normalize(-position.xyz);
-	vec3 R = reflect(-L, normal);
+	vec3 R = reflect(-L, normal.xyz);
 	float RdotV = dot(R, V);
-
-	pColor += vec4(materialSpecular * light.specular * pow(max(RdotV, 0), shininess), 1) * intensity;
+	if (RdotV > 0)
+		pColor += vec4(light.specular * materialSpecular * pow(max(RdotV, 0), materialShininess), 1) * intensity;
 
 	return pColor;
 }
 
-vec4 AmbientLight(AMBIENT light)
+vec4 SpotLight(SPOT light)
 {
-	// Calculate Ambient Light
-	return vec4(materialAmbient * light.color, 1);
+	vec4 pColor = vec4(0, 0, 0, 1);
+
+	// diffuse
+	vec3 L = normalize(light.matrix * vec4(light.position, 1) - position).xyz;
+	float NdotL = dot(L, normal.xyz);
+	pColor += vec4(light.diffuse * materialDiffuse, 1) * max(NdotL, 0);
+
+	// specular
+	vec3 V = normalize(-position.xyz);
+	vec3 R = reflect(-L, normal.xyz);
+	float RdotV = dot(R, V);
+	if (RdotV > 0)
+		pColor += vec4(light.specular * materialSpecular * pow(max(RdotV, 0), materialShininess), 1) * light.intensity;
+
+	// spot factor
+	vec3 D = normalize((mat3(light.matrix) * light.direction));
+	float s1 = -dot(L, D);
+	float angle = acos(s1);
+
+	float spotFactor = (angle <= light.cutOff) ? pow(s1, light.attenuation) : 0.0;
+
+	return spotFactor * pColor;
 }
+
 
 void main(void) 
 {
 	outColor = color;
 
-	outColor += AmbientLight(lightAmbient1);
-	outColor += AmbientLight(lightAmbient2);
-	outColor += AmbientLight(lightAmbient3);
-	outColor += AmbientLight(lightAmbient4);
-
 	outColor += PointLight(lightPoint, globalIntensity);
 	outColor += PointLight(lightPoint1, globalIntensity);
 	outColor += PointLight(lightPoint2, globalIntensity);
 	outColor += PointLight(lightPoint3, globalIntensity);
+
+	outColor += SpotLight(spotlight);
 
 	outColor *= texture(texture0, texCoord0);
 	outColor *= texture(texture1, texCoord0);
