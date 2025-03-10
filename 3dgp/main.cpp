@@ -20,7 +20,7 @@ C3dglProgram program;
 // 3D Models
 C3dglSkyBox skybox;
 C3dglTerrain terrain, road;
-C3dglModel streetLamp, stone, ufo;
+C3dglModel streetLamp, stone, ufo, man;
 
 // Textures
 GLuint idTexSand, idTexRoad;
@@ -73,6 +73,7 @@ bool init()
 	if (!streetLamp.load("models\\streetlamp.obj")) return false;
 	if (!stone.load("models\\stone\\stone.obj")) return false;
 	if (!ufo.load("models\\ufo\\ufo.obj")) return false;
+	if (!man.load("models\\man.fbx")) return false;
 
 	// load Sky Box
 	if (!skybox.load("models\\TropicalSunnyDay\\TropicalSunnyDayFront1024.jpg",
@@ -84,6 +85,8 @@ bool init()
 
 	// load textures
 	stone.loadMaterials("models\\stone");
+
+	man.loadAnimations();
 
 	C3dglBitmap bm;
 
@@ -356,6 +359,7 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 	program.sendUniform("spotlight.attenuation", 5);
 	program.sendUniform("spotlight.intensity", 2);
 
+	// UFO movement
 	if (ufoPath)
 		ufoPos += 0.01f;
 	else
@@ -363,6 +367,16 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 
 	if (ufoPos > 30 || ufoPos < -30)
 		ufoPath = !ufoPath;
+
+	// Man
+	std::vector<mat4> transforms;
+	man.getAnimData(0, time, transforms);
+	program.sendUniform("bones", &transforms[0], transforms.size());
+
+	m = matrixView;
+	m = translate(m, vec3(-8, terrain.getInterpolatedHeight(-8, -25), -25));
+	m = scale(m, vec3(0.01, 0.01, 0.01));
+	man.render(m);
 }
 
 void onRender()
