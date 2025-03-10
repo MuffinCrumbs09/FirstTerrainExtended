@@ -171,7 +171,7 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 
 		program.sendUniform("lightAmbient.color", vec3(1, 1, 1));
 
-		program.sendUniform("globalIntensity", 1);
+		program.sendUniform("globalIntensity", 10);
 	}
 
 	// TEXTURES

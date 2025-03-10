@@ -65,7 +65,11 @@ vec4 PointLight(POINT light, float intensity)
 	if (RdotV > 0)
 		pColor += vec4(light.specular * materialSpecular * pow(max(RdotV, 0), materialShininess), 1) * intensity;
 
-	return pColor;
+	// attenuation
+	float distance = length(matrixView * vec4(light.position, 1) - position);
+	float att = 1 / (0.03 * distance * distance);
+
+	return pColor * att;
 }
 
 vec4 SpotLight(SPOT light)
