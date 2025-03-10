@@ -18,8 +18,9 @@ using namespace glm;
 C3dglProgram program;
 
 // 3D Models
+C3dglSkyBox skybox;
 C3dglTerrain terrain, road;
-C3dglModel streetLamp, stone;
+C3dglModel streetLamp, stone, ufo;
 
 // Textures
 GLuint idTexSand, idTexRoad;
@@ -67,6 +68,15 @@ bool init()
 	if (!road.load("models\\roadmap.png", 10)) return false;
 	if (!streetLamp.load("models\\streetlamp.obj")) return false;
 	if (!stone.load("models\\stone\\stone.obj")) return false;
+	if (!ufo.load("models\\ufo\\ufo.obj")) return false;
+
+	// load Sky Box
+	if (!skybox.load("models\\TropicalSunnyDay\\TropicalSunnyDayFront1024.jpg",
+		"models\\TropicalSunnyDay\\TropicalSunnyDayLeft1024.jpg",
+		"models\\TropicalSunnyDay\\TropicalSunnyDayBack1024.jpg",
+		"models\\TropicalSunnyDay\\TropicalSunnyDayRight1024.jpg",
+		"models\\TropicalSunnyDay\\TropicalSunnyDayUp1024.jpg",
+		"models\\TropicalSunnyDay\\TropicalSunnyDayDown1024.jpg")) return false;
 
 	// load textures
 	stone.loadMaterials("models\\stone");
@@ -85,7 +95,7 @@ bool init()
 	// road
 	bm.load("models/road.jpg", GL_RGBA);
 	if (!bm.getBits()) return false;
-	glActiveTexture(GL_TEXTURE1);
+	glActiveTexture(GL_TEXTURE0);
 	glGenTextures(1, &idTexRoad);
 	glBindTexture(GL_TEXTURE_2D, idTexRoad);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -103,7 +113,7 @@ bool init()
 		vec3(0.0, 1.0, 0.0));
 
 	// setup the screen background colour
-	glClearColor(0.2f, 0.6f, 1.f, 1.0f);   // blue sky background
+	glClearColor(0.0f, 0.0f, 0.2f, 1.0f);
 
 	cout << endl;
 	cout << "Use:" << endl;
@@ -126,16 +136,26 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 	if (dayTime)
 	{
 		// Day Time
-		program.sendUniform("lightDir.direction", vec3(1.0, 1, 1.0));
-		program.sendUniform("lightDir.diffuse", vec3(1, 1, 1));
-		program.sendUniform("materialDiffuse", vec3(.8, .8, .8));
-		program.sendUniform("materialAmbient", vec3(.1, .1, .1));
+		//program.sendUniform("lightDir.direction", vec3(1.0, 1, 1.0));
+		//program.sendUniform("lightDir.diffuse", vec3(1, 1, 1));
+		//program.sendUniform("materialDiffuse", vec3(.8, .8, .8));
+		//program.sendUniform("materialAmbient", vec3(.1, .1, .1));
 
-		program.sendUniform("lightAmbient.color", vec3(0, 0, 0));
+		//program.sendUniform("lightAmbient.color", vec3(0, 0, 0));
+
+		// prepare ambient light for the skybox
+		program.sendUniform("lightAmbient.color", vec3(1.0, 1.0, 1.0));
+		program.sendUniform("materialAmbient", vec3(1.0, 1.0, 1.0));
+		program.sendUniform("materialDiffuse", vec3(0.0, 0.0, 0.0));
+
+		// render the skybox
+		m = matrixView;
+		skybox.render(m);
+
+		// revert normal light after skybox
+		program.sendUniform("lightAmbient.color", vec3(0.4, 0.4, 0.4));
 
 		program.sendUniform("globalIntensity", 0);
-
-		glClearColor(.2, .6, 1, 1);
 	}
 	else
 	{
@@ -148,13 +168,12 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 		program.sendUniform("lightAmbient.color", vec3(1, 1, 1));
 
 		program.sendUniform("globalIntensity", 1);
-
-		glClearColor(0, 0, 1, 1);
 	}
 
 	// TEXTURES
 	program.sendUniform("texture0", 0);
-	program.sendUniform("texture1", 1);
+
+	// Translate - Rotate - Scale
 
 	// render terrain
 	glBindTexture(GL_TEXTURE_2D, idTexSand);
@@ -176,7 +195,7 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 	program.sendUniform("matrixModelView", m);
 	program.sendUniform("materialDiffuse", vec3(1.0f, 1.0f, 1.0f));
 	program.sendUniform("materialSpecular", vec3(0.0f, 0.0f, 0.0f));
-	program.sendUniform("lightAmbient1.color", vec3(1.0, 1.0, 1.0)); // Set emissive light
+	//program.sendUniform("lightAmbient1.color", vec3(1.0, 1.0, 1.0)); // Set emissive light
 	glutSolidSphere(6, 32, 32);
 
 	// Lamp 1
@@ -203,7 +222,7 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 	program.sendUniform("matrixModelView", m);
 	program.sendUniform("materialDiffuse", vec3(1.0f, 1.0f, 1.0f));
 	program.sendUniform("materialSpecular", vec3(0.0f, 0.0f, 0.0f));
-	program.sendUniform("lightAmbient2.color", vec3(1.0, 1.0, 1.0)); // Set emissive light
+	//program.sendUniform("lightAmbient2.color", vec3(1.0, 1.0, 1.0)); // Set emissive light
 	glutSolidSphere(6, 32, 32);
 
 	// Lamp 2
@@ -230,7 +249,7 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 	program.sendUniform("matrixModelView", m);
 	program.sendUniform("materialDiffuse", vec3(1.0f, 1.0f, 1.0f));
 	program.sendUniform("materialSpecular", vec3(0.0f, 0.0f, 0.0f));
-	program.sendUniform("lightAmbient3.color", vec3(1.0, 1.0, 1.0)); // Set emissive light
+	//program.sendUniform("lightAmbient3.color", vec3(1.0, 1.0, 1.0)); // Set emissive light
 	glutSolidSphere(6, 32, 32);
 
 	// Lamp 3
@@ -258,7 +277,7 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 	program.sendUniform("matrixModelView", m);
 	program.sendUniform("materialDiffuse", vec3(1.0f, 1.0f, 1.0f));
 	program.sendUniform("materialSpecular", vec3(0.0f, 0.0f, 0.0f));
-	program.sendUniform("lightAmbient4.color", vec3(1.0, 1.0, 1.0)); // Set emissive light
+	//program.sendUniform("lightAmbient4.color", vec3(1.0, 1.0, 1.0)); // Set emissive light
 	glutSolidSphere(6, 32, 32);
 
 	// Lamp 4
@@ -311,6 +330,15 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 	m = scale(m, vec3(.25, .25, .25));
 	m = scale(m, vec3(.25, .25, .25));
 	stone.render(0, m);
+
+	// UFO
+	m = matrixView;
+	m = translate(m, vec3(0, 25, 0));
+	m = rotate(m, radians(90.f), vec3(0, 1, 0));
+	m = rotate(m, radians(90.f), vec3(1, 0, 0));
+	m = scale(m, vec3(.05, .05, .05));
+	ufo.render(0, m);
+
 }
 
 void onRender()
